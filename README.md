@@ -1,1 +1,2 @@
-Inspiredby and copied from https://github.com/JannisHoch/pcrglobwb_utils
+Inspired by and copied from https://github.com/JannisHoch/pcrglobwb_utils
+
