@@ -1,0 +1,2 @@
+[console_scripts]
+zview = zview.cli:main

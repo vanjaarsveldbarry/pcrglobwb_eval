@@ -1,0 +1,6 @@
+xarray
+zarr
+geopandas
+hydromt
+pandas
+tqdm
