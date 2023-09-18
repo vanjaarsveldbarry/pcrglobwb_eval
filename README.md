@@ -1,4 +1,18 @@
+
+
 Inspired by and copied from https://github.com/JannisHoch/pcrglobwb_utils
+##Targets
+
+Temporal - 30min
+         - 5min
+         - 30sec
+
+Pick a point
+
+
+Output - analysis datasect
+       - Scores
+
 
 ## Validate Daily Discharge
 1.) Download Daily Discharge Data from the [GRDC Data Portal](https://portal.grdc.bafg.de/applications/public.html?publicuser=PublicUser#dataDownload/Stations)
