@@ -15,6 +15,8 @@ cd PATH/pcrglobwb_eval
 
 pip install -e .
 
+conda config --append envs_dirs /Users/fk/miniconda3/envs/
+
 ## Validate Daily Discharge
 1.) Download Daily Discharge Data from the [GRDC Data Portal](https://portal.grdc.bafg.de/applications/public.html?publicuser=PublicUser#dataDownload/Stations)
 
