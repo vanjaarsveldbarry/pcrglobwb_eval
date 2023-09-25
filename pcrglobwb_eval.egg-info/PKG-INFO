@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: pcrglobwb-eval
+Version: 0.0.1
+Summary: A package to evaluate PCR-GLOBWB simulations.
+Author: Barry van Jaarsveld
+Author-email: a.s.vanjaarsveld@uu.nl
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Description-Content-Type: text/markdown
+
+test
