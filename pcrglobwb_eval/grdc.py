@@ -40,7 +40,8 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
     def readSim(simDirectory):    
         dischargeFiles = sorted(simDirectory.glob(f"**/*discharge_dailyTot_output.nc"))
         pcr_ds = xr.open_mfdataset(dischargeFiles, engine='netcdf4')
-        pcr_ds = pcr_ds.sel(time=slice("1979-01-01", "1979-01-05")).compute()
+        #HACK - must remove
+        pcr_ds = pcr_ds.sel(time=slice("1995-01-01", "1995-01-05")).compute()
         pcr_ds = pcr_ds.sortby("lat")
         pcr_ds["mean_discharge"] = pcr_ds.discharge.mean("time")
         return pcr_ds
@@ -60,7 +61,7 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
             return gdf
         
         # Create mask and select GRDC points
-        mask = sim_ds.isel(time=0).discharge.compute()
+        mask = sim_ds.isel(time=0).discharge
         mask = mask.sortby("lat")
         mask = mask.rio.set_crs("epsg:4326")
         transform = mask.rio.transform()
@@ -69,12 +70,14 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
         mask = vectorize(mask, 0, transform, crs="epsg:4326", name="value")
         mask = mask.dissolve(by='value')
             
-        grdcPoints = gpd.read_file(obsFile / 'GRDC_points/GRDC_points.shp')
+        grdcPoints = gpd.read_file(obsFile / 'GRDC_points/GRDC_points.shp', engine='pyogrio')
         grdcPoints = grdcPoints.overlay(mask, how='intersection')
         grdcPoints = grdcPoints.stationID.unique()
 
         #clip GRDC data to selected GRDC points
-        with xr.open_zarr(obsFile / 'GRDC_array.zarr') as grdcData:
+        print(obsFile / 'GRDC_array.zarr')
+        with xr.open_zarr(obsFile / 'GRDC_array.zarr', chunks='auto') as grdcData:
+            print(grdcData)
             grdcData = grdcData.drop_duplicates(dim="station")
             grdcData = grdcData.sel(station=grdcData.station.isin(grdcPoints), 
                                     time=slice(sim_ds.time.values[0], sim_ds.time.values[-1]))
@@ -97,8 +100,6 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
     
     sim_ds = readSim(simDirectory)
     obs_ds = readObs(grdcObservedDataDirectory, sim_ds)
-    
-    validation_ds = obs_ds.groupby("station").map(add_sim_discharge)
-    return validation_ds
-    
-
+    print(obs_ds)
+    # validation_ds = obs_ds.groupby("station").map(add_sim_discharge)
+    # return validation_ds

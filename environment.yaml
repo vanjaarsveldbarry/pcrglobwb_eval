@@ -1,0 +1,22 @@
+name: pcrglobwb_eval
+dependencies:
+  - affine
+  - bottleneck
+  - dask
+  - geopandas
+  - hydromt=0.7.1
+  - numba=0.56.4
+  - numpy=1.23.5
+  - pyflwdir
+  - pyogrio
+  - python
+  - rasterio
+  - rioxarray
+  - scipy
+  - shapely=2.0.1
+  - xarray
+  - tqdm
+  - zarr
+  - flox
+
+prefix: /eejit/home/7006713/mambaforge/envs/pcrglobwb_eval
