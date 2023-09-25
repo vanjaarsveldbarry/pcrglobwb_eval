@@ -170,11 +170,11 @@ class preprocess:
                 data = data.values
                 data = data.reshape(data.shape + (1,))
 
-                latVals = np.array([stationInfo["latitude"]])
-                lonVals = np.array([stationInfo["longitude"]])
-                stationVals = np.array([stationInfo["grdc_no"]])
-                stationgGrid = np.array([stationInfo["grdc_no"]])
-                stationgGrid = stationgGrid.reshape((1,) + (1,) + stationgGrid.shape)
+                # latVals = np.array([stationInfo["latitude"]]).astype("float32")
+                # lonVals = np.array([stationInfo["longitude"]]).astype("float32")
+                stationVals = np.array([stationInfo["grdc_no"]]).astype("float32")
+                # stationgGrid = np.array([stationInfo["grdc_no"]]).astype("float32")
+                # stationgGrid = stationgGrid.reshape((1,) + (1,) + stationgGrid.shape)
 
                 dataSet = xr.Dataset(
                     data_vars={
@@ -183,13 +183,13 @@ class preprocess:
                     coords={
                         "time": (["time"], timeVals),
                         "station": (["station"], stationVals),
-                        "lat": (["station"], np.array([stationInfo["latitude"]])),
-                        "lon": (["station"], np.array([stationInfo["longitude"]])),
+                        "lat": (["station"], np.array([stationInfo["latitude"]]).astype("float32")),
+                        "lon": (["station"], np.array([stationInfo["longitude"]]).astype("float32")),
                         "ts_start": (["station"], np.array([stationInfo["ts_start"]])),
                         "ts_end": (["station"], np.array([stationInfo["ts_end"]])),
-                        "cat_area": (["station"], np.array([stationInfo["cat_area"]])),
+                        "cat_area": (["station"], np.array([stationInfo["cat_area"]]).astype("float32")),
                         "name": (
-                            ["station"], np.array([f"{stationInfo['station']} (No. {stationInfo['grdc_no']})"]),
+                            ["station"], np.array([f"{stationInfo['station']} (No. {stationInfo['grdc_no']})"]).astype("str"),
                         ),
                     },
                 )
@@ -202,21 +202,22 @@ class preprocess:
                     )
 
                     full_ds = xr.merge([dataSet, full_ds], join="outer", compat="no_conflicts")
+                    full_ds = full_ds.sortby("lat", ascending=False)
 
-                if not count % 10 or count == totalLength:
-                    full_ds = full_ds.isel(station=slice(None, -1))
-                    full_ds.to_zarr(saveFolder / f"temp/test{count}.zarr", mode="w")
-                    full_ds = full_ds.isel(station=slice(-2, -1))
+                # if not count % 10 or count == totalLength:
+                #     full_ds = full_ds.isel(station=slice(None, -1))
+                #     full_ds.to_zarr(saveFolder / f"temp/test{count}.zarr", mode="w")
+                    # full_ds = full_ds.isel(station=slice(-2, -1))
 
-            fullFiles = sorted((saveFolder / f"temp").glob("*/"))
-            full_ds = xr.open_mfdataset(
-                fullFiles, engine="zarr", combine="nested", concat_dim="station"
-            )
-            full_ds["name"] = full_ds["name"].astype("str")
-            full_ds = full_ds.compute()
+            # fullFiles = sorted((saveFolder / f"temp").glob("*/"))            
+            # full_ds = xr.open_mfdataset(fullFiles, engine="zarr", combine="nested", concat_dim="station")
+            # print(full_ds)
+            
+            full_ds = full_ds.astype("float32")
             full_ds["mean_grdc_discharge"] = full_ds["grdc_discharge"].mean("time")
+            full_ds = full_ds.chunk({"station": 1})
             full_ds.to_zarr(saveFolder / "GRDC_array.zarr", mode="w", consolidated=True)
-            shutil.rmtree(saveFolder / "temp")
+            # shutil.rmtree(saveFolder / "temp")
             
         def makePointsDataset(dayFiles):
                 count = 0
@@ -251,9 +252,7 @@ class preprocess:
         
         saveFolder.mkdir(exist_ok=True)
 
-        dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))
-        dayFiles = dayFiles[:1]
-        
+        dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))       
         makeArrayDataset(dayFiles)
         makePointsDataset(dayFiles)
         

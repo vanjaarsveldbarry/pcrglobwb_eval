@@ -1,7 +1,7 @@
 from pcrglobwb_eval import preprocess
 
 #Directory containing the GRDC raw data files(i.e. 1104150_Q_Day.Cmd.txt)
-grdcRawDataDirectory='/scratch/depfg/7006713/data/validationData/GRDC/_GRDC_raw/data'
+grdcRawDataDirectory='/scratch/depfg/7006713/temp/test/raw'
 
 
 #Directory where to save the preprocessed GRDC data:
