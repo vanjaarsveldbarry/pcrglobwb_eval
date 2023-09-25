@@ -14,6 +14,7 @@ mamba init
 #### CLONE REPOSITORY
 
 git clone git@github.com:vanjaarsveldbarry/pcrglobwb_eval.git
+
 cd PATH/pcrglobwb_eval
 
 #### CREATE ENVIRONMENT
