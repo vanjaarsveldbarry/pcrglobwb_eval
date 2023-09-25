@@ -1,17 +1,11 @@
-
 Inspired by and copied from https://github.com/JannisHoch/pcrglobwb_utils
 
-##Targets
+## Install for Dev
+git clone git@github.com:vanjaarsveldbarry/pcrglobwb_eval.git
 
-Temporal - 30min
-         - 5min
-         - 30sec
+conda env create --file=environment.yaml
 
-Pick a point
-
-
-Output - analysis datasect
-       - Scores
+conda activate pcrglobwb_eval
 
 
 ## Validate Daily Discharge
