@@ -1,18 +1,21 @@
-
 Inspired by and copied from https://github.com/JannisHoch/pcrglobwb_utils
 
-##Targets
+## Install for Dev
+curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
 
-Temporal - 30min
-         - 5min
-         - 30sec
+bash Mambaforge-$(uname)-$(uname -m).sh
 
-Pick a point
+mamba env create --file=environment.yaml
 
+conda activate pcrglobwb_eval
 
-Output - analysis datasect
-       - Scores
+git clone git@github.com:vanjaarsveldbarry/pcrglobwb_eval.git
 
+cd PATH/pcrglobwb_eval
+
+pip install -e .
+
+conda config --append envs_dirs /Users/fk/miniconda3/envs/
 
 ## Validate Daily Discharge
 1.) Download Daily Discharge Data from the [GRDC Data Portal](https://portal.grdc.bafg.de/applications/public.html?publicuser=PublicUser#dataDownload/Stations)
