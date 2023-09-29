@@ -20,7 +20,8 @@ conda config --append envs_dirs /Users/fk/miniconda3/envs/
 ## Validate Daily Discharge
 1.) Download Daily Discharge Data from the [GRDC Data Portal](https://portal.grdc.bafg.de/applications/public.html?publicuser=PublicUser#dataDownload/Stations)
 
-2.) Run grdcPre.py once to process grdc format into usable format
+2.) Run grdcPre.py:
+ --- /scratch/depfg/7006713/valData/_GRDC_raw
 
 2.) Run grdcEval.py to get:
 
