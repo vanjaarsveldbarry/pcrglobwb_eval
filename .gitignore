@@ -1,2 +1,4 @@
 /pcrglobwb_eval.egg-info
 /build
+/__pycache__
+/.pyc
