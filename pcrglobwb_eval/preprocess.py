@@ -22,10 +22,13 @@ class preprocess:
             totalLength = len(stationFiles)
             count = 0
             for file in tqdm(stationFiles):
+            # for file in stationFiles:
+                
                 count = count + 1
                 selected_columns = ['ID', 'Date and Time', 'Value']
                 dataFile = pd.read_excel(file, skiprows=[1], usecols=selected_columns)
                 dataFile['Date and Time'] = pd.to_datetime(dataFile['Date and Time']).dt.date
+                if dataFile.size <= 10: continue
                 
                 if count == 1:
                     wellFilePath=file.parents[1] / 'wells.xlsx'
@@ -62,7 +65,7 @@ class preprocess:
                         
             full_ds = full_ds.chunk({"well": 1})
             print(full_ds)
-            # full_ds.to_zarr(saveFolder / "gwDepth_array.zarr", mode="w", consolidated=True)
+            # # full_ds.to_zarr(saveFolder / "gwDepth_array.zarr", mode="w", consolidated=True)
 
 
         stationFiles = sorted(groundWaterDepthDataDirectory.glob("**/*.xlsx"))
