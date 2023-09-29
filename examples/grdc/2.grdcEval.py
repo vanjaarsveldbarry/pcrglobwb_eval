@@ -1,6 +1,6 @@
 from pcrglobwb_eval import grdc
 
-#Directory containing the processed GRDC data
+#Directory containing the processed GRDC data (using 1.grdcPre.py)
 grdcDataDirectory='/scratch/depfg/7006713/temp/test'
 
 #Directory containing pcrglobwb output
