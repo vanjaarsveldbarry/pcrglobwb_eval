@@ -21,30 +21,22 @@ class preprocess:
             (saveFolder / "temp").mkdir(exist_ok=True)
             totalLength = len(stationFiles)
             count = 0
-            # for file in tqdm(stationFiles):
-            for file in stationFiles:
-                
-                print(file)
+            for file in tqdm(stationFiles):
                 count = count + 1
                 selected_columns = ['ID', 'Date and Time', 'Value']
                 dataFile = pd.read_excel(file, skiprows=[1], usecols=selected_columns)
                 dataFile['Date and Time'] = pd.to_datetime(dataFile['Date and Time']).dt.date
-                # dataFile['ID'] = dataFile['ID']#.astype("str")
                 
                 if count == 1:
-                    wellFilePath=file.parents[2] / 'wells.xlsx'
+                    wellFilePath=file.parents[1] / 'wells.xlsx'
                     welldataFile = pd.read_excel(wellFilePath, skiprows=[1], usecols=['ID', 'Latitude', 'Longitude'])
 
-                # wellID = str(dataFile['ID'].iloc[0])
                 wellID = dataFile['ID'].iloc[0]
-                
-                # locationData = welldataFile[welldataFile['ID'] == wellID]
                 locationData = welldataFile[welldataFile['ID'].str.match(str(wellID))]
                 
                 if locationData.empty:
-                    # print(f'Well {wellID} is not found') 
+                    print(f'Well {wellID} is not found') 
                     continue
-                print(f'Well {wellID} is found') 
                 
                 data = dataFile["Value"]
                 data = data.values.reshape(data.shape + (1,))
@@ -56,31 +48,26 @@ class preprocess:
                     data_vars={
                         "gwDepth": ((["time", "well"]), data),
                     },
-                    coords={
-                        "time": (["time"], timeVals),
-                        "well": (["well"], wellVals),
-                        "lat": (["station"], np.array([locationData["Latitude"].iloc[0]]).astype("float32")),
-                        "lon": (["station"], np.array([locationData["Longitude"].iloc[0]]).astype("float32")),
-                    },
-                )
+                    coords={"time": (["time"], timeVals),
+                            "well": (["well"], wellVals),
+                            "lat": (["well"], np.array([locationData["Latitude"].iloc[0]]).astype("float32")),
+                            "lon": (["well"], np.array([locationData["Longitude"].iloc[0]]).astype("float32"))})
+
                 if count == 1:
                     full_ds = dataSet
 
                 else:
-                    dataSet, full_ds = xr.align(
-                        dataSet, full_ds, exclude=["lat", "lon"], join="outer"
-                    )
-
                     full_ds = xr.merge([dataSet, full_ds], join="outer", compat="no_conflicts")
                     full_ds = full_ds.sortby("lat", ascending=False)
-                    print(full_ds)
-            full_ds = full_ds.chunk({"station": 1})
-            full_ds.to_zarr(saveFolder / "gwDepth_array.zarr", mode="w", consolidated=True)
+                        
+            full_ds = full_ds.chunk({"well": 1})
+            print(full_ds)
+            # full_ds.to_zarr(saveFolder / "gwDepth_array.zarr", mode="w", consolidated=True)
 
 
-        # stationFiles = [Path('/scratch/depfg/otoo0001/data/Groundwater_observation_data_Australia/AUS - Well and Monitoring Data/monitoring/')]         
         stationFiles = sorted(groundWaterDepthDataDirectory.glob("**/*.xlsx"))
-        stationFiles = stationFiles[:2]
+        # stationFiles = [Path('/scratch/depfg/otoo0001/data/Groundwater_observation_data_Australia/AUS - Well and Monitoring Data/monitoring/10001519.xlsx'),
+                        # Path('/scratch/depfg/otoo0001/data/Groundwater_observation_data_Australia/AUS - Well and Monitoring Data/monitoring/10001526.xlsx')]
         makeArrayDatasetGW(stationFiles)
 
     def grdcData(grdcRawDataDirectory, saveFolder):
@@ -329,6 +316,3 @@ class preprocess:
         makePointsDataset(dayFiles)
         
 
-
-
-    
