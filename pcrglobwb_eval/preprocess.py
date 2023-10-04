@@ -273,7 +273,7 @@ class preprocess:
         
         grdcRawDataDirectory = Path(grdcRawDataDirectory)
         
-        # makeCatchmentAreaMap(lddFile)
+        makeCatchmentAreaMap(lddFile)
         dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))[:10]       
         makeArrayDataset(dayFiles)
         makePointsDataset(dayFiles)
