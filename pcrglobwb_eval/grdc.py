@@ -5,6 +5,7 @@ import geopandas as gpd
 from rasterio import features
 import numpy as np
 import hydromt as hmt
+import Other_Metrics
 
 @dataclass        
 class grdc:
@@ -31,7 +32,11 @@ def scores(df_sim, df_obs):
     r2_ds = hmt.stats.skills.rsquared(df_sim, df_obs)
     mse_ds = hmt.stats.skills.mse(df_sim, df_obs)
     rmse_ds = hmt.stats.skills.rmse(df_sim, df_obs)
-    scores_ds = xr.merge([kge_ds, r2_ds, mse_ds, rmse_ds])
+    non_parametric_kge = Other_Metrics.kge(df_obs, df_sim)
+    acc = Other_Metrics.anomalyCorrelation(df_obs, df_sim)
+    bias = Other_Metrics.bias(df_obs, df_sim)
+    
+    scores_ds = xr.merge([kge_ds, r2_ds, mse_ds, rmse_ds, acc, non_parametric_kge, bias])
     return scores_ds
     
 def dailyValidate(grdcObservedDataDirectory, simDirectory):

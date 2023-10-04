@@ -162,6 +162,7 @@ class preprocess:
             count = 0
             for file in tqdm(dayFiles):
                 count = count + 1
+                print(count)
                 stationInfo = get_grdc_station_properties(file)            
                 data = get_grdc_station_values(file, var_name="OBS", col_name=" Value")
                 data = data["OBS"]
@@ -213,10 +214,10 @@ class preprocess:
             # full_ds = xr.open_mfdataset(fullFiles, engine="zarr", combine="nested", concat_dim="station")
             # print(full_ds)
             
-            full_ds = full_ds.astype("float32")
-            full_ds["mean_grdc_discharge"] = full_ds["grdc_discharge"].mean("time")
-            full_ds = full_ds.chunk({"station": 1})
-            full_ds.to_zarr(saveFolder / "GRDC_array.zarr", mode="w", consolidated=True)
+                    full_ds = full_ds.astype("float32")
+                    full_ds["mean_grdc_discharge"] = full_ds["grdc_discharge"].mean("time")
+                    full_ds = full_ds.chunk({"station": 1})
+                    full_ds.to_zarr(saveFolder / "GRDC_array.zarr", mode="w", consolidated=True)
             # shutil.rmtree(saveFolder / "temp")
             
         def makePointsDataset(dayFiles):
@@ -249,11 +250,12 @@ class preprocess:
 
         saveFolder = Path(saveFolder)
         grdcRawDataDirectory = Path(grdcRawDataDirectory)
-        
+        print('added raw file directory')
         saveFolder.mkdir(exist_ok=True)
 
         dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))       
         makeArrayDataset(dayFiles)
+        print('s')
         makePointsDataset(dayFiles)
         
 
