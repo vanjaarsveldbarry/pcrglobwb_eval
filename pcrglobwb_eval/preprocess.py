@@ -19,11 +19,12 @@ def timing_decorator(func):
         print(f"{func.__name__} took {execution_time:.6f} seconds to run")
         return result
     return wrapper
+# @timing_decorator
 
 class preprocess:
     """Preprocess Validation Data for further analysis
     """
-
+    @timing_decorator
     def grdcData(grdcRawDataDirectory, saveFolder, lddFile):
         """Convert grdc data downloaded from data portal to:
             - GRDC_array.zarr
@@ -169,7 +170,7 @@ class preprocess:
 
             return df 
         
-        @timing_decorator
+        @timing_decorator   
         def makeArrayDataset(dayFiles):
             
             (saveFolder / "temp").mkdir(exist_ok=True)
@@ -181,6 +182,7 @@ class preprocess:
                 data = get_grdc_station_values(file, var_name="OBS", col_name=" Value")
                 data = data["OBS"]
 
+                timeVals = data.index.values
                 data = data.values
                 data = data.reshape(data.shape + (1,))
 
@@ -190,7 +192,7 @@ class preprocess:
                         "grdc_discharge": ((["time", "station"]), data),
                     },
                     coords={
-                        "time": (["time"], data.index.values),
+                        "time": (["time"], timeVals),
                         "station": (["station"], np.array([stationInfo["grdc_no"]]).astype("int32")),
                         "lat": (["station"], np.array([stationInfo["latitude"]]).astype("float32")),
                         "lon": (["station"], np.array([stationInfo["longitude"]]).astype("float32")),
@@ -212,23 +214,18 @@ class preprocess:
                     full_ds = full_ds.sortby("lat", ascending=False)
 
                 if not count % 10 or count == totalLength:
-                    full_ds = full_ds.isel(station=slice(None, -1)).astype("float32")
+                    full_ds = full_ds.isel(station=slice(None, -1)).astype("float32").compute()
                     full_ds.to_zarr(saveFolder / f"temp/test{count}.zarr", mode="w")
                     full_ds = full_ds.isel(station=slice(-2, -1))
             
-            def _preprocess(ds):
-                #TODO, there must be a better way to deal with duplicate stations
-                ds = ds.drop_duplicates(dim="station")
-                return ds.compute()
-            
             fullFiles = sorted((saveFolder / f"temp").glob("*/"))
-            partial_func = partial(_preprocess)
-            full_ds = xr.open_mfdataset(fullFiles, chunks=None, preprocess=partial_func, parallel=True, engine="zarr", combine="nested", concat_dim="station")
+            full_ds = xr.open_mfdataset(fullFiles, chunks=None, parallel=True, engine="zarr", combine="nested", concat_dim="station")
+            full_ds = full_ds.drop_duplicates(dim="station")
             full_ds = full_ds.reset_encoding()
             full_ds.to_zarr(saveFolder / "GRDC_array.zarr", mode="w", consolidated=True)
-            #TODO remove here before upload
-            # shutil.rmtree(saveFolder / "temp")
+            shutil.rmtree(saveFolder / "temp")
             
+        @timing_decorator   
         def makePointsDataset(dayFiles):
                 count = 0
                 for file in tqdm(dayFiles):
@@ -238,10 +235,9 @@ class preprocess:
                     stationgGrid = stationgGrid.reshape((1,) + stationgGrid.shape)
 
                     dataSet = pd.DataFrame(
-                        {
-                            "stationID": np.array([stationInfo["grdc_no"]]),
-                            "lat": np.array([stationInfo["latitude"]]),
-                            "lon": np.array([stationInfo["longitude"]]),
+                        {"stationID": np.array([stationInfo["grdc_no"]]),
+                         "lat": np.array([stationInfo["latitude"]]),
+                         "lon": np.array([stationInfo["longitude"]]),
                         }
                     )
 
@@ -255,6 +251,7 @@ class preprocess:
                 gdf = gpd.GeoDataFrame(full_ds, geometry=gpd.points_from_xy(full_ds.lon, full_ds.lat), crs="EPSG:4326")
                 gdf.to_file(saveFolder / "GRDC_points/GRDC_points.shp")
 
+        @timing_decorator
         def makeCatchmentAreaMap(lddFile):
             ldd_ds = xr.open_dataset(lddFile)
             ldd_ds = ldd_ds.rename({'lat': 'latitude', 'lon':'longitude'})
@@ -266,6 +263,7 @@ class preprocess:
             upstream_area = upstream_area.upstream_area(unit='km2')
             upstream_area = ldd_ds.rename({'Band1': 'upstream_area'}).copy(data={"upstream_area": upstream_area})
             upstream_area.attrs = {}
+            ldd_ds = ldd_ds.rename({'latitude':'lat', 'longitude':'lon'})
             upstream_area.to_zarr(saveFolder / "GRDC_upstreamArea.zarr", mode="w", consolidated=True)
             
         saveFolder = Path(saveFolder)
@@ -273,36 +271,36 @@ class preprocess:
         
         grdcRawDataDirectory = Path(grdcRawDataDirectory)
         
-        makeCatchmentAreaMap(lddFile)
-        dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))[:10]       
+        dayFiles = sorted(grdcRawDataDirectory.glob("*.txt"))
         makeArrayDataset(dayFiles)
         makePointsDataset(dayFiles)
+        makeCatchmentAreaMap(lddFile)
         
-    # def snowData(snowRawDataDirectory, saveFolder):
+    @timing_decorator
+    def snowData(snowRawDataDirectory, saveFolder):
+        """Convert raw snow data to processed form
+            - snow_array.zarr
+        """
         
-    #     """Convert raw snow data to processed form
-    #         - snow_array.zarr
-    #     """ 
-    #     def makeArrayDatasetSnow(snowFiles):
+        def makeArrayDatasetSnow(snowFiles):
 
-    #         def _preprocess(ds):
-    #             ds.sortby('lat', ascending=False)
-    #             return ds[['scfg']]
+            def _preprocess(ds):
+                ds = ds.sortby('lat', ascending=False)
+                ds = ds.where(~ds.isin([255,254,253,252,210,205,206])) #remove error cells
+                ds = xr.where(ds > 0, 1., ds.scfg)                #convert snow cover percentage to binary & galcier, snow and ice
+                return ds[['scfg']]
             
-    #         partial_func = partial(_preprocess)
+            partial_func = partial(_preprocess)
         
-    #         ds = xr.open_mfdataset(snowFiles[:2], chunks=({'time': 1, 'lat': 1000, 'lon': 1000}), parallel=True, concat_dim="time", combine="nested", data_vars='minimal', 
-    #                                coords='minimal', engine='h5netcdf', compat='override', preprocess=partial_func)
-    #         ds = ds.where(~ds.isin([255,254,253,252,210,205,206])) #remove error cells
-    #         ds = xr.where(ds > 0, 1., ds.scfg)                     #convert snow cover percentage to binary & galcier, snow and ice
-    #         ds = ds.reset_encoding()
-    #         ds = ds.to_zarr(saveFolder / 'snowCover.zarr', mode='w')
+            ds = xr.open_mfdataset(snowFiles, chunks=({'time': -1, 'lat': 1000, 'lon': 1000}), parallel=True, concat_dim="time", combine="nested", data_vars='minimal', 
+                                   coords='minimal', engine='h5netcdf', compat='override', preprocess=partial_func)
+            ds = ds.to_zarr(saveFolder / 'snowCover.zarr', mode='w')
         
-    #     saveFolder = Path(saveFolder)
-    #     saveFolder.mkdir(exist_ok=True)
-    #     snowRawDataDirectory = Path(snowRawDataDirectory)
-    #     snowRawDataDirectory = snowRawDataDirectory / '2000/02'
-    #     snowFiles = sorted(snowRawDataDirectory.glob("**/*.nc"))
-    #     makeArrayDatasetSnow(snowFiles)
+        saveFolder = Path(saveFolder)
+        saveFolder.mkdir(exist_ok=True)
+        snowRawDataDirectory = Path(snowRawDataDirectory)
+        snowRawDataDirectory = snowRawDataDirectory
+        snowFiles = sorted(snowRawDataDirectory.glob("**/*.nc"))
+        makeArrayDatasetSnow(snowFiles)
         
     # def graceData(graceRawDataDirectory, saveFolder)
