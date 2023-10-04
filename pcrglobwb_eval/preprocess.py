@@ -181,24 +181,22 @@ class preprocess:
                 data = get_grdc_station_values(file, var_name="OBS", col_name=" Value")
                 data = data["OBS"]
 
-                timeVals = data.index.values
                 data = data.values
                 data = data.reshape(data.shape + (1,))
 
-                stationVals = np.array([stationInfo["grdc_no"]]).astype("float32")
 
                 dataSet = xr.Dataset(
                     data_vars={
                         "grdc_discharge": ((["time", "station"]), data),
                     },
                     coords={
-                        "time": (["time"], timeVals),
-                        "station": (["station"], stationVals),
+                        "time": (["time"], data.index.values),
+                        "station": (["station"], np.array([stationInfo["grdc_no"]]).astype("int32")),
                         "lat": (["station"], np.array([stationInfo["latitude"]]).astype("float32")),
                         "lon": (["station"], np.array([stationInfo["longitude"]]).astype("float32")),
                         "ts_start": (["station"], np.array([stationInfo["ts_start"]])),
                         "ts_end": (["station"], np.array([stationInfo["ts_end"]])),
-                        "cat_area": (["station"], np.array([stationInfo["cat_area"]]).astype("float32")),
+                        "cat_area": (["station"], np.array([stationInfo["cat_area"]]).astype("int32")),
                         "name": (
                             ["station"], np.array([f"{stationInfo['station']} (No. {stationInfo['grdc_no']})"]).astype("str"),
                         ),
@@ -214,17 +212,13 @@ class preprocess:
                     full_ds = full_ds.sortby("lat", ascending=False)
 
                 if not count % 10 or count == totalLength:
-                    full_ds = full_ds.isel(station=slice(None, -1))
+                    full_ds = full_ds.isel(station=slice(None, -1)).astype("float32")
                     full_ds.to_zarr(saveFolder / f"temp/test{count}.zarr", mode="w")
                     full_ds = full_ds.isel(station=slice(-2, -1))
             
             def _preprocess(ds):
                 #TODO, there must be a better way to deal with duplicate stations
                 ds = ds.drop_duplicates(dim="station")
-                ds = ds.astype("float32")
-                ds['cat_area'] = ds['cat_area'].astype("int32")
-                ds['station'] = ds['station'].astype("int32")
-                # ds["mean_grdc_discharge"] = ds["grdc_discharge"].mean("time")
                 return ds.compute()
             
             fullFiles = sorted((saveFolder / f"temp").glob("*/"))
@@ -280,7 +274,7 @@ class preprocess:
         grdcRawDataDirectory = Path(grdcRawDataDirectory)
         
         # makeCatchmentAreaMap(lddFile)
-        dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))       
+        dayFiles = sorted(grdcRawDataDirectory.glob("**/*.txt"))[:10]       
         makeArrayDataset(dayFiles)
         makePointsDataset(dayFiles)
         
