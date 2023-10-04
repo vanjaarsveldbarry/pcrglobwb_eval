@@ -169,6 +169,7 @@ class preprocess:
             # self.df = df_out
 
             return df 
+        
         @timing_decorator   
         def makeArrayDataset(dayFiles):
             
