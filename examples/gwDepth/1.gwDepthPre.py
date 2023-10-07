@@ -5,7 +5,7 @@ groundWaterDepthDataDirectory='/scratch/depfg/otoo0001/data/Groundwater_observat
 
 
 #Directory where to save the preprocessed GRDC data:
-saveFolder='/scratch/depfg/7006713/temp/test'
+saveFolder='/scratch/depfg/otoo0001/transient_analysis/gw_all/'
 # - GRDC_array.zarr
 # - GRDC_points.shp
 

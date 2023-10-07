@@ -64,6 +64,8 @@ class preprocess:
                             "well": (["well"], wellVals),
                             "lat": (["well"], np.array([locationData["Latitude"].iloc[0]]).astype("float32")),
                             "lon": (["well"], np.array([locationData["Longitude"].iloc[0]]).astype("float32"))})
+                dataSet["gwDepth"] = dataSet["gwDepth"].dropna(dim="time")
+                
 
                 if count == 1:
                     full_ds = dataSet
