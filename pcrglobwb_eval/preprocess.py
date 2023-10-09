@@ -6,7 +6,10 @@ import numpy as np
 import xarray as xr
 import shutil
 import geopandas as gpd
+import logging
+from shapely.geometry import Point
 
+logging.basicConfig(filename="preprocessing.log", level=logging.INFO)
 class preprocess:
     """Preprocessig input data for further validation.
     """
@@ -22,8 +25,7 @@ class preprocess:
             stationFiles = sorted(groundWaterDepthDataDirectory.glob("**/*.xlsx"))  
             totalLength = len(stationFiles)
             count = 0
-             # Limit stationFiles to the first 10 files
-            stationFiles = stationFiles[:2]
+            stationFiles = stationFiles
             for file in tqdm(stationFiles):
             # for file in stationFiles:
                 
@@ -37,23 +39,27 @@ class preprocess:
                 if count == 1:
                     wellFilePath=file.parents[1] / 'wells.xlsx'
                     welldataFile = pd.read_excel(wellFilePath, skiprows=[1], usecols=['ID', 'Latitude', 'Longitude'])
-                    print(welldataFile)
+
+            
                 
                 wellID = dataFile['ID'].iloc[0]
                 locationData = welldataFile[welldataFile['ID'].str.match(str(wellID))]
-                # locationData_df = pd.DataFrame(locationData)
                 
                 
                 if locationData.empty:
                     print(f'Well {wellID} is not found') 
                     continue
+            
                 
+                # locationData_df = pd.DataFrame(locationData)
+                # locationData_df.to_csv = (saveFolder / "location_data.csv")
+                                               
                 data = dataFile["Value"]
                 data = data.values.reshape(data.shape + (1,))
                 
                 
                 
-                timeVals = dataFile["Date and Time"]
+                timeVals = pd.to_datetime(dataFile["Date and Time"])
                 wellVals = np.array([wellID]).astype("str")
 
                 dataSet = xr.Dataset(
@@ -64,53 +70,44 @@ class preprocess:
                             "well": (["well"], wellVals),
                             "lat": (["well"], np.array([locationData["Latitude"].iloc[0]]).astype("float32")),
                             "lon": (["well"], np.array([locationData["Longitude"].iloc[0]]).astype("float32"))})
+                
                 dataSet["gwDepth"] = dataSet["gwDepth"].dropna(dim="time")
+                dataSet = dataSet.drop_duplicates(dim='time')
+
                 
 
                 if count == 1:
                     full_ds = dataSet
+                    
 
                 else:
                     full_ds = xr.merge([dataSet, full_ds], join="outer", compat="no_conflicts")
                     full_ds = full_ds.sortby("lat", ascending=False)
-                return welldataFile     
+        
             full_ds = full_ds.chunk({"well": 1})
-            # full_ds.to_zarr(saveFolder / "gwDepth_array.zarr", mode="w", consolidated=True)
+            print(full_ds)
+            full_ds.to_zarr(saveFolder / "gwDepth_array.zarr", mode="w", consolidated=True)
+            logging.info(f"zaar saved sucessfully: {file}")
 
-        def makePointsDataset(stationFiles):
-            count = 0
-            for file in tqdm(stationFiles):
-                count = count + 1
-                stationInfo = makeArrayDatasetGW(file)
-                print(stationInfo)
-                print(stationInfo)         
-                stationgGrid = np.array([stationInfo["ID"]]).astype("str")
-                stationgGrid = stationgGrid.reshape((1,) + stationgGrid.shape)
-                stationgGrid = stationgGrid[0][0]
+        def makedataPointsfromzarr(saveFolder):
+            zarr_file = Path(saveFolder) / "gwDepth_array.zarr"
+            zarr_data = xr.open_zarr(zarr_file)
+            latitudes = zarr_data['lat'].values
+            longitudes = zarr_data['lon'].values
+            field_values = zarr_data["well"].values
 
-                dataSet = pd.DataFrame(
-                    {
-                        "stationID": np.array([stationInfo["ID"]]),
-                        "lat": np.array([stationInfo["Latitude"]]),
-                        "lon": np.array([stationInfo["Longitude"]]),
-                    }
-                )
-
-                if count == 1:
-                    full_ds = dataSet
-
-                else:
-                    full_ds = pd.concat([dataSet, full_ds], axis=0, ignore_index=False)
-
+            geometry = [Point(lon, lat) for lon, lat in zip(longitudes, latitudes)]
             (saveFolder / "well_points").mkdir(exist_ok=True)
-            gdf = gpd.GeoDataFrame(
-                full_ds, geometry=gpd.points_from_xy(full_ds.lon, full_ds.lat), crs="EPSG:4326"
-            )
-            gdf.to_file(saveFolder / "well_points/obswell_points.shp")  
-            
-        stationFiles = sorted(groundWaterDepthDataDirectory.glob("**/*.xlsx"))  
+            gdf = gpd.GeoDataFrame({"well": field_values, 'geometry': geometry}, crs="EPSG:4326")
+            gdf.to_file(saveFolder / "well_points/obswell_points.shp")
+
+
+        saveFolder = Path(saveFolder)
+        groundWaterDepthDataDirectory= Path(groundWaterDepthDataDirectory)
+        stationFiles = sorted(groundWaterDepthDataDirectory.glob("**/*.xlsx")) 
         makeArrayDatasetGW(stationFiles)
-        makePointsDataset(stationFiles)
+        makedataPointsfromzarr(saveFolder)
+    
 
 
 
