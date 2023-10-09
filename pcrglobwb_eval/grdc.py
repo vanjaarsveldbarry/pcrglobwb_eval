@@ -35,8 +35,8 @@ class grdc:
         self.validationData = dailyValidate(self.grdcDataDirectory,
                                             self.simDirectory)
         
-        self.scores = scores(self.validationData.sim_discharge, 
-                             self.validationData.grdc_discharge)
+        # self.scores = scores(self.validationData.sim_discharge, 
+        #                      self.validationData.grdc_discharge)
 
 def scores(df_sim, df_obs):
     nse_ds = hmt.stats.skills.nashsutcliffe(df_sim, df_obs)
@@ -74,10 +74,13 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
         # pcr_ds["mean_discharge"] = pcr_ds.discharge.mean("time")
         return pcr_ds.compute()
     
-    def readUpstreamArea(obsFile, sim_ds):
-        with xr.open_zarr(obsFile / 'GRDC_upstreamArea.zarr', chunks='auto') as up_ds:
-            up_ds = up_ds.sel(longitude=slice(sim_ds.lon.min(), sim_ds.lon.max()),
-                              latitude=slice(sim_ds.lat.max(), sim_ds.lat.min()))
+    def readUpstreamArea(grdcObservedDataDirectory, sim_ds):
+        with xr.open_zarr(grdcObservedDataDirectory / 'GRDC_upstreamArea.zarr', chunks='auto') as up_ds:
+            print(up_ds)
+            import sys
+            sys.exit()
+            up_ds = up_ds.sel(longitude=slice(sim_ds.lon.min().item(), sim_ds.lon.max().item()),
+                              latitude=slice(sim_ds.lat.max().item(), sim_ds.lat.min().item()))
         return up_ds.compute()
     
     def readObs(obsFile, sim_ds):
@@ -107,9 +110,7 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
 
         #clip GRDC data to selected GRDC points
         with xr.open_zarr(obsFile / 'GRDC_array.zarr', chunks='auto') as grdcData:
-            #HACK checck that the processed data npo longer contains duplicate station ID and \
-            #     figure out how to handle them 
-            grdcData = grdcData.drop_duplicates(dim="station")
+            # grdcData = grdcData.drop_duplicates(dim="station")
             grdcData = grdcData.sel(station=grdcData.station.isin(grdcPoints), 
                                     time=slice(sim_ds.time.values[0], sim_ds.time.values[-1]))
             
@@ -134,11 +135,11 @@ def dailyValidate(grdcObservedDataDirectory, simDirectory):
 
     sim_ds = readSim(simDirectory)
     upstreamArea = readUpstreamArea(grdcObservedDataDirectory, sim_ds)
-    obs_ds = readObs(grdcObservedDataDirectory, sim_ds)
-    obs_ds = obs_ds.isel(station=slice(0,1))
-    start_timeF = time.time()
-    validation_ds = obs_ds.groupby("station").map(add_sim_discharge, shortcut =True)
-    end_timeF = time.time()
-    execution_timeF = end_timeF - start_timeF
-    print(f"WHOLE took {execution_timeF:.6f} seconds to run")
-    return validation_ds.compute()
+    # obs_ds = readObs(grdcObservedDataDirectory, sim_ds)
+    # obs_ds = obs_ds.isel(station=slice(0,1))
+    # start_timeF = time.time()
+    # validation_ds = obs_ds.groupby("station").map(add_sim_discharge, shortcut =True)
+    # end_timeF = time.time()
+    # execution_timeF = end_timeF - start_timeF
+    # print(f"WHOLE took {execution_timeF:.6f} seconds to run")
+    # return validation_ds.compute()
