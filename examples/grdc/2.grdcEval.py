@@ -10,5 +10,5 @@ grdcData = grdc(grdcDataDirectory, simDirectory)
 validationData = grdcData.validationData
 scores = grdcData.scores
 
-# print(validationData)
-# print(scores)
+print(validationData)
+print(scores)
